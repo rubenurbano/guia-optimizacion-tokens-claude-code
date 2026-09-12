@@ -1,0 +1,1648 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#0a0e1a">
+<title>Guía de Optimización de Tokens en Claude Code by Rubén Sbarsky</title>
+<style>
+:root{
+  --bg:#0a0e1a;
+  --bg-deep:#070b14;
+  --card:#0f172a;
+  --card-2:#111c33;
+  --border:#1e3a5f;
+  --accent:#00d4ff;
+  --green:#22c55e;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --purple:#a855f7;
+  --text:#e6f1ff;
+  --muted:#8fa3bf;
+  --muted-2:#5f7392;
+  --radius:10px;
+  --radius-lg:14px;
+  --font:'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  --shadow:0 8px 30px rgba(0,0,0,0.35);
+  --glow:0 0 22px rgba(0,212,255,0.28);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;}
+body{overflow-x:hidden;line-height:1.65;}
+img,svg{max-width:100%;display:block;}
+a{color:var(--accent);text-decoration:none;}
+a:hover{text-decoration:underline;}
+h1,h2,h3,h4,h5{margin:0 0 0.5em 0;line-height:1.25;letter-spacing:.2px;}
+p{margin:0 0 1em 0;}
+code, pre{font-family:'Consolas','Monaco','Menlo','Courier New',monospace;}
+::selection{background:rgba(0,212,255,0.35);color:#fff;}
+
+/* ======= PROGRESS BAR ======= */
+#progress-bar{
+  position:fixed;top:0;left:0;height:3px;width:0%;
+  background:linear-gradient(90deg,var(--accent),var(--purple),var(--green));
+  z-index:1000;transition:width .15s ease-out;
+  box-shadow:0 0 10px rgba(0,212,255,0.7);
+}
+
+/* ======= NAVBAR ======= */
+#navbar{
+  position:fixed;top:0;left:0;right:0;z-index:999;
+  background:rgba(10,14,26,0.92);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;
+  padding-top:13px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:thin;
+  scrollbar-color:var(--accent) transparent;
+  white-space:nowrap;
+}
+#navbar::-webkit-scrollbar{height:4px;}
+#navbar::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px;}
+#navbar::-webkit-scrollbar-track{background:transparent;}
+.brand{
+  display:inline-flex;align-items:center;gap:8px;
+  font-weight:700;font-size:0.92rem;color:var(--accent);
+  padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(0,212,255,0.06),rgba(0,212,255,0.01));
+  flex-shrink:0;
+  letter-spacing:.5px;
+}
+.brand .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulseDot 2s infinite;}
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.75);}}
+.nav-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:transparent;color:var(--muted);
+  border:1px solid transparent;border-radius:var(--radius);
+  padding:7px 12px;font-size:0.83rem;font-weight:500;
+  cursor:pointer;font-family:var(--font);
+  transition:all .22s ease;
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.nav-btn:hover{color:var(--text);background:rgba(30,58,95,0.35);border-color:var(--border);}
+.nav-btn.active{
+  color:#001019;
+  background:linear-gradient(135deg,var(--accent),#00a3cc);
+  border-color:var(--accent);
+  box-shadow:var(--glow);
+  font-weight:600;
+}
+.nav-btn.credits-btn{
+  margin-left:auto;
+  color:var(--purple);
+  border-color:rgba(168,85,247,0.4);
+  background:rgba(168,85,247,0.08);
+}
+.nav-btn.credits-btn.active{color:#fff;background:linear-gradient(135deg,var(--purple),#7e22ce);border-color:var(--purple);box-shadow:0 0 22px rgba(168,85,247,0.45);}
+
+/* ======= LAYOUT ======= */
+main{padding:70px 14px 60px 14px;max-width:1200px;margin:0 auto;}
+.section{display:none;animation:fadeIn .45s ease-out;}
+.section.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* ======= CARDS ======= */
+.card{
+  background:linear-gradient(180deg,var(--card) 0%,#0c1426 100%);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:20px 18px;
+  margin-bottom:18px;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  opacity:.55;
+}
+.card-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.card-icon{
+  width:42px;height:42px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;
+  background:linear-gradient(135deg,rgba(0,212,255,0.18),rgba(0,212,255,0.03));
+  border:1px solid rgba(0,212,255,0.35);
+  color:var(--accent);
+  flex-shrink:0;
+}
+.card-icon.green{background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(34,197,94,0.03));border-color:rgba(34,197,94,0.4);color:var(--green);}
+.card-icon.amber{background:linear-gradient(135deg,rgba(245,158,11,0.18),rgba(245,158,11,0.03));border-color:rgba(245,158,11,0.4);color:var(--amber);}
+.card-icon.red{background:linear-gradient(135deg,rgba(239,68,68,0.18),rgba(239,68,68,0.03));border-color:rgba(239,68,68,0.4);color:var(--red);}
+.card-icon.purple{background:linear-gradient(135deg,rgba(168,85,247,0.18),rgba(168,85,247,0.03));border-color:rgba(168,85,247,0.4);color:var(--purple);}
+.card-title{font-size:1.15rem;font-weight:700;color:var(--text);margin:0;}
+.card-subtitle{font-size:0.82rem;color:var(--muted);margin:0;}
+
+/* ======= HOME ======= */
+.hero{
+  text-align:center;
+  padding:6px 0 10px 0;
+}
+.hero-badge{
+  display:inline-block;
+  padding:6px 14px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:rgba(0,212,255,0.07);
+  color:var(--accent);
+  font-size:0.72rem;
+  font-weight:600;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  margin-bottom:14px;
+}
+.hero-title{
+  font-size:clamp(1.5rem,5.5vw,2.6rem);
+  font-weight:800;
+  background:linear-gradient(120deg,#fff 0%,#00d4ff 45%,#a855f7 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin:0 0 10px 0;
+  letter-spacing:-0.5px;
+  line-height:1.15;
+}
+.hero-subtitle{
+  font-size:clamp(0.92rem,2.6vw,1.08rem);
+  color:var(--muted);
+  max-width:760px;margin:0 auto 16px auto;
+}
+.hero-quote{
+  font-style:italic;
+  color:var(--accent);
+  font-size:0.95rem;
+  border-left:3px solid var(--accent);
+  border-right:3px solid var(--accent);
+  padding:10px 18px;
+  margin:16px auto 20px auto;
+  max-width:640px;
+  background:rgba(0,212,255,0.05);
+  border-radius:8px;
+}
+.metrics{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:10px;
+  margin:18px 0 6px 0;
+}
+.metric{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px 10px;
+  text-align:center;
+}
+.metric .num{
+  font-size:1.4rem;font-weight:800;color:var(--accent);
+  display:block;line-height:1.2;
+  text-shadow:0 0 14px rgba(0,212,255,0.4);
+}
+.metric .lbl{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;display:block;}
+
+/* ======= SVG CONTAINER ======= */
+.svg-frame{
+  width:100%;
+  border-radius:var(--radius-lg);
+  border:1px solid var(--border);
+  background:#070b14;
+  overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.08) inset;
+  margin:6px 0 18px 0;
+  position:relative;
+  aspect-ratio:16/9;
+}
+.svg-frame svg{width:100%;height:100%;display:block;}
+
+/* ======= CONTENT ELEMENTS ======= */
+.grid-2{display:grid;grid-template-columns:1fr;gap:14px;}
+.grid-3{display:grid;grid-template-columns:1fr;gap:14px;}
+@media(min-width:680px){
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+}
+.chip{
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:0.72rem;
+  font-weight:600;
+  letter-spacing:.6px;
+  border:1px solid var(--border);
+  background:rgba(30,58,95,0.35);
+  color:var(--muted);
+  margin:0 4px 6px 0;
+}
+.chip.cyan{color:var(--accent);border-color:rgba(0,212,255,0.5);background:rgba(0,212,255,0.08);}
+.chip.green{color:var(--green);border-color:rgba(34,197,94,0.5);background:rgba(34,197,94,0.08);}
+.chip.amber{color:var(--amber);border-color:rgba(245,158,11,0.5);background:rgba(245,158,11,0.08);}
+.chip.red{color:var(--red);border-color:rgba(239,68,68,0.5);background:rgba(239,68,68,0.08);}
+.chip.purple{color:var(--purple);border-color:rgba(168,85,247,0.5);background:rgba(168,85,247,0.08);}
+
+/* ======= CALLOUTS ======= */
+.callout{
+  border-radius:var(--radius);
+  padding:14px 16px;
+  margin:14px 0;
+  border-left:4px solid;
+  font-size:0.92rem;
+  position:relative;
+}
+.callout .co-title{
+  font-weight:700;
+  font-size:0.78rem;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  display:block;
+  margin-bottom:6px;
+}
+.callout.info{background:rgba(0,212,255,0.07);border-color:var(--accent);color:#bfefff;}
+.callout.info .co-title{color:var(--accent);}
+.callout.example{background:rgba(34,197,94,0.07);border-color:var(--green);color:#bff5d1;}
+.callout.example .co-title{color:var(--green);}
+.callout.warn{background:rgba(245,158,11,0.08);border-color:var(--amber);color:#ffe8b8;}
+.callout.warn .co-title{color:var(--amber);}
+.callout.error{background:rgba(239,68,68,0.08);border-color:var(--red);color:#ffc9c9;}
+.callout.error .co-title{color:var(--red);}
+
+/* ======= CODE BLOCK ======= */
+pre.code{
+  background:#060a14;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px;
+  overflow-x:auto;
+  font-size:0.78rem;
+  line-height:1.6;
+  color:#cfe4ff;
+  margin:12px 0;
+  position:relative;
+  white-space:pre;
+  max-width:100%;
+}
+pre.code::-webkit-scrollbar{height:8px;}
+pre.code::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+pre.code::-webkit-scrollbar-track{background:#0a0f1c;}
+code.inline{
+  background:rgba(0,212,255,0.1);
+  border:1px solid rgba(0,212,255,0.25);
+  padding:2px 7px;
+  border-radius:6px;
+  font-size:0.82em;
+  color:#9ce7ff;
+}
+
+/* ======= TABLES ======= */
+.table-wrap{overflow-x:auto;margin:14px 0;border-radius:var(--radius);border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:0.85rem;min-width:420px;}
+th{
+  background:linear-gradient(180deg,#132447,#0e1a35);
+  color:var(--accent);
+  text-align:left;
+  padding:11px 12px;
+  font-weight:700;
+  font-size:0.76rem;
+  text-transform:uppercase;
+  letter-spacing:.8px;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+td{
+  padding:11px 12px;
+  border-bottom:1px solid rgba(30,58,95,0.5);
+  color:var(--text);
+  vertical-align:top;
+}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even) td{background:rgba(30,58,95,0.12);}
+
+/* ======= STEPS ======= */
+.steps{counter-reset:step;list-style:none;padding:0;margin:14px 0;}
+.steps li{
+  position:relative;
+  padding:12px 14px 12px 52px;
+  background:var(--card-2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  margin-bottom:10px;
+  font-size:0.92rem;
+}
+.steps li::before{
+  counter-increment:step;
+  content:counter(step);
+  position:absolute;
+  left:12px;top:50%;
+  transform:translateY(-50%);
+  width:28px;height:28px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#007ba3);
+  color:#001a24;
+  font-weight:800;
+  font-size:0.85rem;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 12px rgba(0,212,255,0.5);
+}
+
+/* ======= ACCORDION ======= */
+.acc-item{
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  margin-bottom:10px;
+  overflow:hidden;
+  background:var(--card-2);
+}
+.acc-head{
+  padding:14px 16px;
+  cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+  font-weight:600;
+  color:var(--text);
+  font-size:0.94rem;
+  transition:background .2s;
+  user-select:none;
+  gap:10px;
+}
+.acc-head:hover{background:rgba(0,212,255,0.05);}
+.acc-head .arrow{
+  transition:transform .3s;
+  color:var(--accent);
+  font-size:0.85rem;
+  flex-shrink:0;
+}
+.acc-item.open .acc-head .arrow{transform:rotate(90deg);}
+.acc-body{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .4s ease, padding .3s;
+  padding:0 16px;
+  font-size:0.9rem;
+  color:var(--muted);
+}
+.acc-item.open .acc-body{
+  max-height:2000px;
+  padding:0 16px 16px 16px;
+}
+
+/* ======= TABS ======= */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.tab-btn{
+  padding:9px 14px;
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  background:var(--card-2);
+  color:var(--muted);
+  font-family:var(--font);
+  font-size:0.83rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .25s;
+}
+.tab-btn:hover{color:var(--text);border-color:var(--accent);}
+.tab-btn.active{
+  background:linear-gradient(135deg,rgba(0,212,255,0.18),rgba(168,85,247,0.14));
+  color:var(--accent);
+  border-color:var(--accent);
+  box-shadow:var(--glow);
+}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;animation:fadeIn .35s;}
+
+/* ======= BACK TO TOP ======= */
+#toTop{
+  position:fixed;bottom:20px;right:18px;
+  width:46px;height:46px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#007ba3);
+  color:#001a24;
+  border:none;
+  font-size:1.25rem;
+  font-weight:800;
+  cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,212,255,0.4);
+  z-index:900;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .3s, transform .3s;
+}
+#toTop.show{opacity:1;pointer-events:auto;}
+#toTop:hover{transform:translateY(-3px);}
+
+/* ======= FOOTER ======= */
+footer{
+  border-top:1px solid var(--border);
+  margin-top:30px;
+  padding:24px 16px;
+  text-align:center;
+  font-size:0.8rem;
+  color:var(--muted);
+  background:linear-gradient(180deg,transparent,rgba(15,23,42,0.6));
+  line-height:1.9;
+}
+footer .f-line{display:block;}
+footer .latin{color:var(--accent);font-style:italic;letter-spacing:.6px;margin-top:6px;}
+
+/* ======= CREDITS ======= */
+.credits-wrap{text-align:center;}
+.credits-wrap h2{
+  font-size:clamp(1.3rem,4vw,1.9rem);
+  color:var(--accent);
+  margin-bottom:6px;
+}
+.credits-info{
+  max-width:560px;
+  margin:16px auto;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:20px 18px;
+  text-align:left;
+}
+.credits-info .row{
+  display:flex;justify-content:space-between;
+  padding:9px 0;
+  border-bottom:1px dashed rgba(30,58,95,0.7);
+  font-size:0.9rem;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.credits-info .row:last-child{border-bottom:none;}
+.credits-info .row .k{color:var(--muted);font-weight:600;}
+.credits-info .row .v{color:var(--text);font-weight:600;word-break:break-word;}
+.credits-latin{
+  text-align:center;font-style:italic;
+  color:var(--purple);
+  font-size:1rem;
+  letter-spacing:.5px;
+  margin-top:14px;
+}
+
+/* ======= TYPO ======= */
+.h2-section{
+  font-size:clamp(1.2rem,3.6vw,1.6rem);
+  font-weight:800;
+  color:var(--text);
+  margin:0 0 6px 0;
+  display:flex;align-items:center;gap:10px;
+  flex-wrap:wrap;
+}
+.h2-section .num-badge{
+  font-size:0.7rem;
+  padding:3px 9px;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  color:#001a24;
+  border-radius:999px;
+  font-weight:800;
+  letter-spacing:1px;
+}
+ul.list{margin:10px 0 14px 0;padding-left:20px;}
+ul.list li{margin-bottom:7px;font-size:0.92rem;}
+ul.list li::marker{color:var(--accent);}
+strong{color:#fff;}
+.kw{color:var(--accent);font-weight:700;}
+.kw-g{color:var(--green);font-weight:700;}
+.kw-a{color:var(--amber);font-weight:700;}
+.kw-r{color:var(--red);font-weight:700;}
+.kw-p{color:var(--purple);font-weight:700;}
+
+/* ======= RESPONSIVE ======= */
+@media(max-width:520px){
+  main{padding:66px 10px 56px 10px;}
+  .card{padding:16px 13px;}
+  .nav-btn{padding:6px 10px;font-size:0.76rem;}
+  .brand{font-size:0.8rem;padding:5px 9px;}
+  #navbar{gap:6px;padding:8px 8px;padding-top:11px;}
+  .hero-badge{font-size:0.66rem;}
+  pre.code{font-size:0.72rem;padding:11px;}
+  table{font-size:0.78rem;}
+  th,td{padding:9px 9px;}
+  #toTop{width:42px;height:42px;bottom:16px;right:12px;}
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important;transition-duration:.001ms !important;}
+  #progress-bar{transition:none;}
+}
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<nav id="navbar" aria-label="Navegación principal">
+  <span class="brand"><span class="dot"></span>TOKEN OPT</span>
+  <button class="nav-btn active" data-target="home">🏠 Inicio</button>
+  <button class="nav-btn" data-target="intro">📊 01·Coste</button>
+  <button class="nav-btn" data-target="audit">🔍 02·Auditoría</button>
+  <button class="nav-btn" data-target="clear">🧹 03·/clear</button>
+  <button class="nav-btn" data-target="cache">🔐 04·Caché</button>
+  <button class="nav-btn" data-target="mcp">🛠️ 05·MCP</button>
+  <button class="nav-btn" data-target="hooks">🎛️ 06·Hooks</button>
+  <button class="nav-btn" data-target="subagents">🤖 07·Subagentes</button>
+  <button class="nav-btn" data-target="cron">⏱️ 08·Cron</button>
+  <button class="nav-btn" data-target="myths">💡 09·Mitos</button>
+  <button class="nav-btn" data-target="control">📡 10·Panel</button>
+  <button class="nav-btn" data-target="cierre">🎯 11·Cierre</button>
+  <button class="nav-btn credits-btn" data-target="creditos">✨ Créditos</button>
+</nav>
+
+<main>
+
+  <!-- ============ HOME ============ -->
+  <section id="home" class="section active">
+    <div class="svg-frame" id="svg-home"></div>
+
+    <div class="hero">
+      <span class="hero-badge">◆ Tutorial Interactivo · Claude Code · Anthropic</span>
+      <h1 class="hero-title">Guía de Optimización de Tokens en Claude Code</h1>
+      <p class="hero-subtitle">Arquitectura de contexto, caché de prompt y control de gasto. Una guía técnica para evitar límites de sesión y maximizar el rendimiento del modelo sin sacrificar calidad de trabajo.</p>
+
+      <div class="hero-quote">
+        "Si no puedes explicarlo de forma sencilla, es que no lo entiendes lo suficientemente bien."
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><span class="num">0.01%</span><span class="lbl">Tus prompts</span></div>
+        <div class="metric"><span class="num">96%</span><span class="lbl">Relectura historial</span></div>
+        <div class="metric"><span class="num">60 min</span><span class="lbl">Vida del caché</span></div>
+        <div class="metric"><span class="num">10×</span><span class="lbl">Penalización caché frío</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📘</div>
+        <div>
+          <h2 class="card-title">Sobre esta guía</h2>
+          <p class="card-subtitle">Rubén Sbarsky · Arquitectura de Sistemas IA</p>
+        </div>
+      </div>
+      <p>Esta guía enseña a gestionar el <strong>Contexto</strong> —la memoria de corto plazo de Claude— para evitar límites de sesión y maximizar el rendimiento aprovechando el sistema de <strong>caché de prompt</strong> de Anthropic.</p>
+      <div>
+        <span class="chip cyan">/clear</span>
+        <span class="chip green">Cache Key</span>
+        <span class="chip amber">Tool Deferral</span>
+        <span class="chip red">Proxies</span>
+        <span class="chip purple">Subagentes</span>
+        <span class="chip cyan">PreToolUse Hooks</span>
+        <span class="chip green">/rewind</span>
+        <span class="chip amber">/context</span>
+        <span class="chip purple">/usage</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 01 INTRO ============ -->
+  <section id="intro" class="section">
+    <h2 class="h2-section"><span class="num-badge">01</span> Introducción: El Verdadero Coste de la Inteligencia</h2>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📊</div>
+        <div>
+          <h2 class="card-title">Gestión de tokens como decisión de diseño</h2>
+          <p class="card-subtitle">No es contabilidad, es estrategia</p>
+        </div>
+      </div>
+      <p>Como Arquitecto de Sistemas IA, la gestión de tokens no es un ejercicio de contabilidad, sino una <strong>decisión de diseño estratégico</strong>. Optimizar el uso de tokens en Claude Code no solo protege tu presupuesto; mejora la <em>"agilidad mental"</em> del modelo al reducir el ruido informativo. Un contexto saturado es un contexto lento y propenso a errores.</p>
+
+      <div class="callout info">
+        <span class="co-title">INFO · Fuente del gasto</span>
+        Debemos desmitificar la fuente del gasto: el <strong>99.9%</strong> de tu consumo no proviene de lo que escribes. De hecho, tus prompts representan apenas el <strong>0.01%</strong> del total.
+      </div>
+
+      <p>El verdadero "vampiro" de recursos es la arquitectura subyacente. Según datos técnicos de sesiones reales, el <strong class="kw-r">96% del gasto total</strong> proviene de la <strong>relectura constante del historial</strong>.</p>
+
+      <div class="callout example">
+        <span class="co-title">Objetivo de la guía</span>
+        Esta guía te enseñará a gestionar el <strong>Contexto</strong> (la memoria de corto plazo de Claude) para evitar límites de sesión y maximizar el rendimiento mediante el aprovechamiento del sistema de <strong>caché de Anthropic</strong>.
+      </div>
+
+      <div class="grid-3">
+        <div class="card" style="margin:0;">
+          <div class="card-icon purple">🧠</div>
+          <h3 class="card-title" style="font-size:1rem;">Contexto</h3>
+          <p style="font-size:0.88rem;color:var(--muted);margin:6px 0 0 0;">Memoria de corto plazo. Cada mensaje reenvía todo el historial acumulado.</p>
+        </div>
+        <div class="card" style="margin:0;">
+          <div class="card-icon green">⚡</div>
+          <h3 class="card-title" style="font-size:1rem;">Caché</h3>
+          <p style="font-size:0.88rem;color:var(--muted);margin:6px 0 0 0;">Lectura de caché ~10× más barata que reprocesar. Sensible a cambios de configuración.</p>
+        </div>
+        <div class="card" style="margin:0;">
+          <div class="card-icon amber">🛡️</div>
+          <h3 class="card-title" style="font-size:1rem;">Arquitectura</h3>
+          <p style="font-size:0.88rem;color:var(--muted);margin:6px 0 0 0;">Modelo, hooks, MCP, subagentes y cron determinan el coste real por turno.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 02 AUDITORÍA ============ -->
+  <section id="audit" class="section">
+    <h2 class="h2-section"><span class="num-badge">02</span> Auditoría de Tokens en Tiempo Real</h2>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon cyan">🔍</div>
+        <div>
+          <h2 class="card-title">El Primer Paso: Diagnóstico</h2>
+          <p class="card-subtitle">Datos duros, no estimaciones vagas</p>
+        </div>
+      </div>
+      <p>Antes de aplicar cualquier optimización, un arquitecto debe realizar un <strong>diagnóstico</strong>. No podemos basarnos en estimaciones vagas; necesitamos datos duros.</p>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">El Prompt Maestro</h3>
+      <p style="font-size:0.9rem;color:var(--muted);">Copia y pega exactamente esto. Este prompt está diseñado para obligar a Claude a inspeccionar sus propios procesos internos y reportar <em>"puntos de fuga"</em> con precisión numérica.</p>
+
+      <pre class="code">Audit this setup for token waste. Do not fix anything. Report only.
+Use your shell and file tools to measure each item. If you cannot invoke slash
+commands yourself, ask me to run /context and /usage and paste the output, then
+continue.
+
+1. MEMORY: Find every CLAUDE.md in scope: this project, parent directories, the user
+level one, and anything pulled in with @imports. Report each file's size in
+tokens. Flag any single file over 5k and any total over 10k.
+
+2. TOOLS: List connected MCP servers and how many tools each exposes. State plainly
+whether tool deferral is ACTIVE or NOT. Then check for a proxy or gateway
+(ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN, any gateway variable) and say so
+loudly if you find one, because routing through a proxy silently turns
+deferral off and nothing warns you.
+
+3. MODEL: Report the current model and effort level and where each is set. Flag any
+mode that changes model automatically during a session, because every
+switch rebuilds the whole cache.
+
+4. HOOKS: List any PreToolUse hooks that rewrite noisy commands to produce less
+output. If there are none, say so, because unfiltered test and build output
+lands in context verbatim and is re-sent for the rest of the session.
+
+5. SUBAGENTS: List every agent file in the project and user agent directories. For each,
+report whether it sets an explicit model in frontmatter or inherits the
+main session's model.
+
+6. SCHEDULED WORK: List every cron, scheduled task and background job with its interval.
+Compare each interval against the prompt cache lifetime (60 min). Flag every one
+whose interval is longer, because those miss cache on every single fire.
+
+7. CACHE: Parse the newest session log under the projects directory. For every
+assistant turn, sum usage.cache_read_input_tokens,
+cache_creation_input_tokens, input_tokens and output_tokens. Report each as
+a percentage of the total. Also report the context size on the first turn
+and on the last turn.
+
+Output one table, sorted by cost, highest first:
+FINDING | SEVERITY | EVIDENCE | WHAT IT IS COSTING ME
+
+Severity is RED, AMBER or GREEN. Evidence is a number or a file path, never an
+adjective.
+Then one final line: the single highest-leverage change I should make. One
+line, nothing else.
+Rules: measure, do not estimate. Write UNKNOWN rather than guessing. Change no
+file and no setting.</pre>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">7 puntos de auditoría</h3>
+      <div class="acc-item">
+        <div class="acc-head"><span>1. MEMORY — Archivos CLAUDE.md</span><span class="arrow">▶</span></div>
+        <div class="acc-body">Busca cada <code class="inline">CLAUDE.md</code> en alcance: proyecto, directorios padre, nivel de usuario y cualquier cosa importada con <code class="inline">@imports</code>. Reporta el tamaño de cada archivo en tokens. Marca cualquier archivo individual por encima de <strong>5k</strong> y cualquier total por encima de <strong>10k</strong>.</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head"><span>2. TOOLS — Servidores MCP y deferral</span><span class="arrow">▶</span></div>
+        <div class="acc-body">Lista los servidores MCP conectados y cuántas herramientas expone cada uno. Indica claramente si <strong>tool deferral</strong> está ACTIVO o NO. Después comprueba si hay un proxy o gateway (<code class="inline">ANTHROPIC_BASE_URL</code>, <code class="inline">ANTHROPIC_AUTH_TOKEN</code>, cualquier variable de gateway) y dilo <strong>en voz alta</strong>: enrutar a través de un proxy desactiva el deferral silenciosamente sin avisarte.</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head"><span>3. MODEL — Modelo y nivel de esfuerzo</span><span class="arrow">▶</span></div>
+        <div class="acc-body">Reporta el modelo actual y el nivel de esfuerzo (<em>effort level</em>) y dónde se define cada uno. Marca cualquier modo que cambie de modelo automáticamente durante la sesión, porque <strong>cada cambio reconstruye todo el caché</strong>.</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head"><span>4. HOOKS — PreToolUse</span><span class="arrow">▶</span></div>
+        <div class="acc-body">Lista cualquier hook <code class="inline">PreToolUse</code> que reescriba comandos ruidosos para producir menos salida. Si no hay ninguno, dilo, porque la salida sin filtrar de tests y builds aterriza en el contexto textualmente y se reenvía durante el resto de la sesión.</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head"><span>5. SUBAGENTS — Archivos de agente</span><span class="arrow">▶</span></div>
+        <div class="acc-body">Lista cada archivo de agente en los directorios de proyecto y de usuario. Para cada uno, reporta si establece un modelo explícito en el frontmatter o si hereda el modelo de la sesión principal.</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head"><span>6. SCHEDULED WORK — Tareas programadas</span><span class="arrow">▶</span></div>
+        <div class="acc-body">Lista cada cron, tarea programada y job en segundo plano con su intervalo. Compara cada intervalo contra la vida del caché de prompt (<strong>60 min</strong>). Marca cada uno cuyo intervalo sea mayor, porque esos pierden el caché en cada ejecución.</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head"><span>7. CACHE — Log de sesión</span><span class="arrow">▶</span></div>
+        <div class="acc-body">Parsea el log de sesión más reciente bajo el directorio de proyectos. Para cada turno del asistente, suma <code class="inline">usage.cache_read_input_tokens</code>, <code class="inline">cache_creation_input_tokens</code>, <code class="inline">input_tokens</code> y <code class="inline">output_tokens</code>. Reporta cada uno como porcentaje del total. También reporta el tamaño del contexto en el primer turno y en el último.</div>
+      </div>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">Formato de salida exigido</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Columna</th><th>Descripción</th></tr></thead>
+          <tbody>
+            <tr><td>FINDING</td><td>Hallazgo detectado</td></tr>
+            <tr><td>SEVERITY</td><td><span class="kw-r">RED</span> / <span class="kw-a">AMBER</span> / <span class="kw-g">GREEN</span></td></tr>
+            <tr><td>EVIDENCE</td><td>Un número o una ruta de archivo, <strong>nunca un adjetivo</strong></td></tr>
+            <tr><td>WHAT IT IS COSTING ME</td><td>Coste asociado al hallazgo</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:0.88rem;color:var(--muted);">Ordenada por coste, mayor primero. Después una línea final: <em>el único cambio de mayor palanca que debo hacer</em>. Una línea, nada más.</p>
+
+      <div class="callout warn">
+        <span class="co-title">Reglas del prompt</span>
+        Medir, no estimar. Escribir <strong>UNKNOWN</strong> en lugar de adivinar. No cambiar ningún archivo ni ningún ajuste.
+      </div>
+
+      <div class="callout info">
+        <span class="co-title">Cadencia recomendada</span>
+        Vuelve a ejecutar la auditoría cada vez que añadas un plugin, servidor MCP, tarea programada o archivo de instrucciones importante. Los pequeños cambios de configuración se acumulan rápidamente.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 /clear ============ -->
+  <section id="clear" class="section">
+    <h2 class="h2-section"><span class="num-badge">03</span> Estrategia 1: El Comando /clear y el Arte del Reinicio</h2>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon red">🧹</div>
+        <div>
+          <h2 class="card-title">El historial es interés compuesto</h2>
+          <p class="card-subtitle">Cada mensaje reenvía toda la conversación anterior</p>
+        </div>
+      </div>
+      <p>En Claude Code, el historial <strong>no es un registro pasivo</strong>; es interés compuesto. Debido a que el modelo no tiene memoria intrínseca, cada vez que envías un mensaje, Claude "empaqueta" toda la conversación anterior y la reenvía.</p>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">Mecánica del Gasto: La Caja Plateada</h3>
+      <p>Tu mensaje actual es una pequeña <em>"caja plateada"</em> en la parte superior. Todo lo que está debajo es historia por la que <strong>ya pagaste</strong>, pero que <strong>vuelves a pagar</strong> en cada nuevo turno.</p>
+
+      <div class="callout example">
+        <span class="co-title">Ejemplo de multiplicación</span>
+        Un archivo de <strong>3,000 tokens</strong> leído en el turno 4 de una sesión de <strong>40 turnos</strong> te costará ese valor multiplicado por <strong>37</strong>.
+      </div>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">Acción Paso a Paso</h3>
+      <ol class="steps">
+        <li>Ejecuta <code class="inline">/clear</code>: Al terminar una tarea y empezar otra, limpia la sesión. Esto <strong>resetea el historial al 0%</strong> inmediatamente.</li>
+        <li>Gestiona con <code class="inline">/rename</code> y <code class="inline">/resume</code>: Si temes perder información, usa <code class="inline">/rename</code> para archivar la sesión actual. Podrás recuperarla con <code class="inline">/resume</code> si es urgente. <strong>No tires el trabajo</strong>; simplemente deja de cargarlo innecesariamente.</li>
+      </ol>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">Comparativa de escenarios</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Escenario</th><th>Coste de Historial</th><th>Estado del Caché</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Continuar sesión vieja</td><td>Máximo (Acumulativo)</td><td>Cálido (pero saturado)</td></tr>
+            <tr><td>Sesión nueva con <code class="inline">/clear</code></td><td>Cero</td><td>Empty/Cold (Ligero)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 04 CACHÉ ============ -->
+  <section id="cache" class="section">
+    <h2 class="h2-section"><span class="num-badge">04</span> Estrategia 2: Estabilidad del Modelo y el "Cache Key"</h2>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon green">🔐</div>
+        <div>
+          <h2 class="card-title">La llave del caché</h2>
+          <p class="card-subtitle">Hasta 90% de ahorro en costes de lectura</p>
+        </div>
+      </div>
+      <p>La clave para ahorrar hasta un <strong class="kw-g">90% en costes de lectura</strong> es el <strong>Caché de Prompt</strong>. Sin embargo, este sistema es extremadamente sensible.</p>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">La Llave del Caché (Cache Key)</h3>
+      <p>Imagina que el caché es una <strong>bóveda</strong>. La "llave" para abrirla está compuesta por:</p>
+      <div class="callout info">
+        <span class="co-title">Cache Key</span>
+        [<strong>Nombre del Modelo</strong>] + [<strong>Nivel de Esfuerzo</strong>] + [<strong>Configuración de Servidores MCP</strong>]
+      </div>
+      <p>Si cambias un solo componente, la llave ya no encaja y <strong class="kw-r">el caché se invalida</strong>.</p>
+
+      <div class="callout error">
+        <span class="co-title">El Error del Ahorrador</span>
+        Bajar de <strong>Opus</strong> a <strong>Sonnet</strong> a mitad de sesión para "ahorrar" es la acción <strong>más cara</strong> que puedes realizar. Al cambiar el modelo, Claude debe re-procesar todo el historial a <strong>precio completo</strong> (10 veces más caro que una lectura de caché).
+      </div>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">Acciones Peligrosas (Rompen el Caché)</h3>
+      <ul class="list">
+        <li>Cambiar de modelo (<code class="inline">/model</code>).</li>
+        <li>Cambiar nivel de esfuerzo (<em>effort level</em>).</li>
+        <li>Activar <em>fast mode</em>.</li>
+        <li>Actualizar Claude Code (un update a mitad de sesión invalida el caché).</li>
+        <li>Compactar la sesión.</li>
+      </ul>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">Acciones Seguras</h3>
+      <ul class="list">
+        <li>Editar archivos en el repo.</li>
+        <li>Modificar archivos de memoria (<code class="inline">CLAUDE.md</code>).</li>
+        <li>Invocar subagentes.</li>
+        <li>Cambiar el estilo de salida.</li>
+      </ul>
+
+      <div class="callout warn">
+        <span class="co-title">Consejo Pro</span>
+        Elige tu configuración al inicio y <strong>no la toques</strong> hasta el próximo <code class="inline">/clear</code>.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 05 MCP ============ -->
+  <section id="mcp" class="section">
+    <h2 class="h2-section"><span class="num-badge">05</span> Estrategia 3: Gestión de Herramientas y Servidores MCP</h2>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon amber">🛠️</div>
+        <div>
+          <h2 class="card-title">Cada herramienta carga su manual</h2>
+          <p class="card-subtitle">GitHub solo puede ocupar 26,000 tokens antes de tu "Hola"</p>
+        </div>
+      </div>
+      <p>Cada herramienta conectada (GitHub, Slack, etc.) carga su manual de instrucciones en el contexto. <strong class="kw-a">GitHub solo puede ocupar 26,000 tokens</strong> antes de que digas "Hola".</p>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">El Peligro del Proxy</h3>
+      <p>Claude utiliza una técnica llamada <strong>"Tool Deferral"</strong> (Carga diferida) que mantiene estos manuales cerrados hasta que se necesitan.</p>
+
+      <div class="callout error">
+        <span class="co-title">Advertencia Crítica</span>
+        Si utilizas un <strong>proxy o gateway</strong> (configurando <code class="inline">ANTHROPIC_BASE_URL</code>), el sistema <strong>desactiva el deferral silenciosamente</strong>. Pagarás por todos los manuales de herramientas en cada mensaje <strong>sin aviso previo</strong>.
+      </div>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">Acciones</h3>
+      <ol class="steps">
+        <li>Usa <code class="inline">/mcp</code> y apaga cualquier herramienta que no hayas usado en el último mes.</li>
+        <li>Usa <code class="inline">/context</code> y verifica que en la línea de herramientas aparezca el estado <strong>"deferred"</strong>.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ 06 HOOKS ============ -->
+  <section id="hooks" class="section">
+    <h2 class="h2-section"><span class="num-badge">06</span> Estrategia 4: Filtros de Salida (PreToolUse Hooks)</h2>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon cyan">🎛️</div>
+        <div>
+          <h2 class="card-title">El Filtro Maestro</h2>
+          <p class="card-subtitle">50,000 tokens → 200 tokens útiles</p>
+        </div>
+      </div>
+      <p>Cuando instalas una librería, la terminal puede escupir <strong>800 líneas</strong> de advertencias y logs. Si no se filtran, esas líneas ensucian tu contexto <strong>permanentemente</strong>.</p>
+
+      <div class="callout info">
+        <span class="co-title">Solución</span>
+        Debes crear un <em>"filtro"</em> que resuma la salida antes de que llegue al modelo. Pide a Claude lo siguiente:
+      </div>
+
+      <pre class="code">"Create a PreToolUse hook script that intercepts terminal output. If a command generates more than 20 lines of logs, summarize it to 'Success' or 'Error' plus the last 5 lines. Save it as a hook for this environment."</pre>
+
+      <div class="callout example">
+        <span class="co-title">Resultado</span>
+        Esto transforma <strong>50,000 tokens</strong> de "basura de instalación" en <strong>200 tokens</strong> de información útil.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 07 SUBAGENTES ============ -->
+  <section id="subagents" class="section">
+    <h2 class="h2-section"><span class="num-badge">07</span> Estrategia 5: Subagentes y el Dilema de la Delegación</h2>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon purple">🤖</div>
+        <div>
+          <h2 class="card-title">Los subagentes no ahorran tokens, los mueven</h2>
+          <p class="card-subtitle">La realidad arquitectónica</p>
+        </div>
+      </div>
+      <p>Muchos creen que los subagentes <strong>ahorran</strong> tokens. La realidad arquitectónica es distinta: los subagentes <strong>no ahorran tokens, los mueven</strong>.</p>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">La Matemática de la Delegación</h3>
+      <p>Un subagente debe cargar su propio <em>prompt de sistema</em>, herramientas y archivos de memoria.</p>
+
+      <div class="callout warn">
+        <span class="co-title">Caso de estudio</span>
+        Un subagente quema <strong>9,800 tokens</strong> (overhead) para realizar una tarea que ahorra <strong>5,700 tokens</strong> en la sesión principal. En aislamiento, <strong class="kw-r">perdiste dinero</strong>.
+      </div>
+
+      <div class="callout error">
+        <span class="co-title">Multiplicadores de Gasto</span>
+        Los agentes usan <strong>4 veces más tokens</strong> que un chat normal, y los sistemas multi-agente pueden usar hasta <strong>15 veces más</strong>.
+      </div>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">¿Cuándo es rentable?</h3>
+      <p>Solo si se cumplen estas condiciones:</p>
+      <ul class="list">
+        <li>La salida es de <strong>gran volumen</strong>.</li>
+        <li><strong>No necesitas</strong> el detalle técnico en el historial principal.</li>
+        <li>La sesión principal va a <strong>durar muchos turnos más</strong>.</li>
+      </ul>
+
+      <div class="callout example">
+        <span class="co-title">Truco de Arquitecto</span>
+        Configura subagentes en <strong>Haiku</strong>. Es <strong>5 veces más barato</strong> y <strong>no invalida el caché</strong> de tu sesión principal en Opus/Sonnet.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 08 CRON ============ -->
+  <section id="cron" class="section">
+    <h2 class="h2-section"><span class="num-badge">08</span> Estrategia 6: Tareas Programadas y la Ventana de 60 Minutos</h2>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon red">⏱️</div>
+        <div>
+          <h2 class="card-title">Vampiros nocturnos</h2>
+          <p class="card-subtitle">Los cron jobs pueden devorar tu cuota mientras duermes</p>
+        </div>
+      </div>
+      <p>Las tareas de fondo (<em>cron jobs</em>) pueden actuar como <strong>"vampiros" nocturnos</strong> que devoran tu cuota mientras duermes.</p>
+
+      <h3 style="color:var(--accent);font-size:1.05rem;">La Regla de Oro del Caché</h3>
+      <div class="callout info">
+        <span class="co-title">Vida útil</span>
+        El caché de Anthropic tiene una vida útil de exactamente <strong>60 minutos</strong>.
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Intervalo de tarea</th><th>Estado del caché</th><th>Coste relativo</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Cada <strong>45 minutos</strong></td><td>Encuentra el caché vivo</td><td><span class="kw-g">Pagas el 10% del coste</span></td></tr>
+            <tr><td>Cada <strong>2 horas</strong></td><td>El caché ha expirado</td><td><span class="kw-r">Pagas el 100% (10× más caro)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Si tienes una tarea programada, es <strong>financieramente más inteligente</strong> ejecutarla cada 45 minutos que cada 2 horas.</p>
+    </div>
+  </section>
+
+  <!-- ============ 09 MITOS ============ -->
+  <section id="myths" class="section">
+    <h2 class="h2-section"><span class="num-badge">09</span> Desmitificación: Errores Comunes y /rewind</h2>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon amber">💡</div>
+        <div>
+          <h2 class="card-title">Mitos desmontados</h2>
+          <p class="card-subtitle">Lo que no funciona y por qué</p>
+        </div>
+      </div>
+
+      <div class="acc-item">
+        <div class="acc-head"><span>❌ Prompts cortos</span><span class="arrow">▶</span></div>
+        <div class="acc-body">No ahorran nada. El coste real es <strong>la respuesta y el historial</strong>, no tu pregunta.</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head"><span>❌ Compactación (Compaction)</span><span class="arrow">▶</span></div>
+        <div class="acc-body">Es la acción <strong>más cara posible</strong>. Para resumir, debe leer todo el historial (precio full) y luego borra el caché a propósito.</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head"><span>✅ La alternativa quirúrgica: /rewind</span><span class="arrow">▶</span></div>
+        <div class="acc-body">Si una tarea salió mal, <strong>no compactes</strong>. Usa <code class="inline">/rewind</code> para volver a un punto donde el caché aún era válido. No requiere relectura y mantiene el ahorro.</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head"><span>❌ PDFs y el "Doble Cobro"</span><span class="arrow">▶</span></div>
+        <div class="acc-body">Anthropic cobra por el texto del PDF y además toma una <strong>captura de pantalla de cada página</strong>. Pagas dos veces por la misma información. <strong>Convierte siempre a texto plano (.txt)</strong> antes de procesar.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 10 PANEL ============ -->
+  <section id="control" class="section">
+    <h2 class="h2-section"><span class="num-badge">10</span> Panel de Control del Experto: Comandos de Vigilancia</h2>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon cyan">📡</div>
+        <div>
+          <h2 class="card-title">Tu sala de máquinas</h2>
+          <p class="card-subtitle">Tres comandos + un indicador visual</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Comando</th><th>Propósito Arquitectónico</th><th>Indicador Crítico</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code class="inline">/context</code></td>
+              <td>Ver el peso actual del sistema.</td>
+              <td>Estado <strong>"deferred"</strong> en herramientas.</td>
+            </tr>
+            <tr>
+              <td><code class="inline">/usage</code></td>
+              <td>Auditoría de consumo por habilidad.</td>
+              <td>Identificar qué herramienta está "confesando" el gasto.</td>
+            </tr>
+            <tr>
+              <td><code class="inline">/cost</code></td>
+              <td>Análisis de rentabilidad por mensaje.</td>
+              <td>Ratio de <em>"Rereading history"</em> vs <em>"New work"</em>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout example">
+        <span class="co-title">El Burn Rate Meter</span>
+        Este indicador en la esquina de Claude Code es tu <strong>mejor aliado</strong>. Monitorear cómo se mueve en tiempo real <strong>cambiará tu comportamiento</strong> más que cualquier regla escrita.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 11 CIERRE ============ -->
+  <section id="cierre" class="section">
+    <h2 class="h2-section"><span class="num-badge">11</span> Cierre y Aplicación Práctica</h2>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon green">🎯</div>
+        <div>
+          <h2 class="card-title">Resumen de Conceptos Clave</h2>
+          <p class="card-subtitle">Los cuatro pilares</p>
+        </div>
+      </div>
+      <ol class="steps">
+        <li><strong>Limpieza radical:</strong> <code class="inline">/clear</code> es tu herramienta de ahorro #1.</li>
+        <li><strong>Inmutabilidad:</strong> No cambies modelo ni esfuerzo durante la sesión.</li>
+        <li><strong>Filtrado:</strong> No permitas que logs de terminal entren al contexto.</li>
+        <li><strong>Caché inteligente:</strong> Alinea tus tareas a la ventana de 60 minutos.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon red">⚠️</div>
+        <div>
+          <h2 class="card-title">Lista de Errores Fatales</h2>
+          <p class="card-subtitle">Lo que nunca debes hacer</p>
+        </div>
+      </div>
+      <ul class="list">
+        <li>Cambiar de <strong>Opus a Sonnet</strong> para "ahorrar" en una sesión larga (invalida el caché).</li>
+        <li>Subir <strong>capturas de pantalla de código</strong> en lugar de texto (<strong>5k tokens vs 100 tokens</strong>).</li>
+        <li>Ignorar el <strong>"Doble Cobro"</strong> de los PDFs.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon purple">🧪</div>
+        <div>
+          <h2 class="card-title">Ejercicios Prácticos</h2>
+          <p class="card-subtitle">Aprende haciendo</p>
+        </div>
+      </div>
+
+      <div class="tabs" data-tabs="exercises">
+        <button class="tab-btn active" data-tab="ex1">Ejercicio 1</button>
+        <button class="tab-btn" data-tab="ex2">Ejercicio 2</button>
+      </div>
+
+      <div class="tab-panel active" id="ex1">
+        <h3 style="color:var(--accent);font-size:1rem;">Auditoría Inicial</h3>
+        <p>Ejecuta el <strong>Prompt Maestro</strong> (sección 02) y detecta si algún archivo de memoria excede los <strong>5k tokens</strong>.</p>
+      </div>
+      <div class="tab-panel" id="ex2">
+        <h3 style="color:var(--accent);font-size:1rem;">Prueba de Estrés de Caché</h3>
+        <p>Realiza una tarea de <strong>10 turnos</strong>, mira el <code class="inline">/cost</code>. Cambia el modelo y vuelve a mirar el <code class="inline">/cost</code>. Verás el <strong class="kw-r">salto de 10×</strong> en el precio.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="callout info">
+        <span class="co-title">Nota Final</span>
+        La IA no está diseñada para ahorrarte tokens; está diseñada para <strong>ser útil</strong>. Como experto, es tu responsabilidad <em>"mantener tu escritorio limpio"</em> para que la potencia del sistema no se diluya en el ruido.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon cyan">📋</div>
+        <div>
+          <h2 class="card-title">Prompt Maestro (repetición íntegra)</h2>
+          <p class="card-subtitle">Copia y pega en Claude Code</p>
+        </div>
+      </div>
+      <pre class="code">Audit this setup for token waste. Do not fix anything. Report only.
+
+Use your shell and file tools to measure each item. If you cannot invoke slash
+commands yourself, ask me to run /context and /usage and paste the output, then
+continue.
+
+1. MEMORY
+   Find every CLAUDE.md in scope: this project, parent directories, the user
+   level one, and anything pulled in with @imports. Report each file's size in
+   tokens. Flag any single file over 5k and any total over 10k.
+
+2. TOOLS
+   List connected MCP servers and how many tools each exposes. State plainly
+   whether tool deferral is ACTIVE or NOT. Then check for a proxy or gateway
+   (ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN, any gateway variable) and say so
+   loudly if you find one, because routing through a proxy silently turns
+   deferral off and nothing warns you.
+
+3. MODEL
+   Report the current model and effort level and where each is set. Flag any
+   mode that changes model automatically during a session, because every
+   switch rebuilds the whole cache.
+
+4. HOOKS
+   List any PreToolUse hooks that rewrite noisy commands to produce less
+   output. If there are none, say so, because unfiltered test and build output
+   lands in context verbatim and is re-sent for the rest of the session.
+
+5. SUBAGENTS
+   List every agent file in the project and user agent directories. For each,
+   report whether it sets an explicit model in frontmatter or inherits the
+   main session's model.
+
+6. SCHEDULED WORK
+   List every cron, scheduled task and background job with its interval.
+   Compare each interval against the prompt cache lifetime. Flag every one
+   whose interval is longer, because those miss cache on every single fire.
+
+7. CACHE
+   Parse the newest session log under the projects directory. For every
+   assistant turn, sum usage.cache_read_input_tokens,
+   cache_creation_input_tokens, input_tokens and output_tokens. Report each as
+   a percentage of the total. Also report the context size on the first turn
+   and on the last turn.
+
+Output one table, sorted by cost, highest first:
+
+   FINDING | SEVERITY | EVIDENCE | WHAT IT IS COSTING ME
+
+Severity is RED, AMBER or GREEN. Evidence is a number or a file path, never an
+adjective.
+
+Then one final line: the single highest-leverage change I should make. One
+line, nothing else.
+
+Rules: measure, do not estimate. Write UNKNOWN rather than guessing. Change no
+file and no setting.</pre>
+
+      <div class="callout warn">
+        <span class="co-title">Recordatorio</span>
+        Run the audit again whenever you add a plugin, MCP server, scheduled task, or major instruction file. Small configuration changes compound quickly.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CRÉDITOS ============ -->
+  <section id="creditos" class="section">
+    <div class="credits-wrap">
+      <h2>✨ Créditos</h2>
+      <div class="svg-frame" id="svg-credits"></div>
+      <div class="credits-info">
+        <div class="row"><span class="k">📘 Tutorial</span><span class="v">Guía de Optimización de Tokens en Claude Code</span></div>
+        <div class="row"><span class="k">👨‍💻 Autor</span><span class="v">Rubén Sbarsky</span></div>
+        <div class="row"><span class="k">📅 Fecha</span><span class="v">12/09/2026</span></div>
+        <div class="row"><span class="k">🕒 Hora</span><span class="v">08:04:15</span></div>
+        <div class="row"><span class="k">🎓 Uso</span><span class="v">Material solo con fines Educativos y Divulgación</span></div>
+      </div>
+      <p class="credits-latin">Fiat iustitia, ruat caelum.</p>
+    </div>
+  </section>
+
+</main>
+
+<button id="toTop" aria-label="Volver arriba">↑</button>
+
+<footer>
+  <span class="f-line">📚 Tutorial solo con fines Educativos y Divulgación</span>
+  <span class="f-line">👨‍💻 Créditos: Rubén Sbarsky</span>
+  <span class="f-line">📅 FECHA: 12/09/2026 · Hora: 08:04:15</span>
+  <span class="f-line latin">Fiat iustitia, ruat caelum.</span>
+</footer>
+
+<!-- ================= SVG TEMPLATE (una sola definición, usada en HOME y CRÉDITOS) ================= -->
+<template id="svg-template">
+<svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Portada animada: flujo de tokens, caché y modelo">
+  <defs>
+    <linearGradient id="bgG" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070b14">
+        <animate attributeName="stop-color" values="#070b14;#0a1428;#0a0e1a;#070b14" dur="8s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="50%" stop-color="#0a0e1a">
+        <animate attributeName="stop-color" values="#0a0e1a;#0f172a;#0a1428;#0a0e1a" dur="9s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#0f172a">
+        <animate attributeName="stop-color" values="#0f172a;#070b14;#0a0e1a;#0f172a" dur="7s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+
+    <radialGradient id="haloCyan" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#00d4ff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haloPurple" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#a855f7" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haloGreen" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.85"/>
+      <stop offset="60%" stop-color="#22c55e" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haloRed" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#ef4444" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowStrong" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="6" result="b2"/>
+      <feMerge><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowSoft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.4" result="b3"/>
+      <feMerge><feMergeNode in="b3"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <pattern id="gridP" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e3a5f" stroke-width="0.5" opacity="0.4">
+        <animate attributeName="opacity" values="0.45;0.12;0.45" dur="6s" repeatCount="indefinite"/>
+      </path>
+    </pattern>
+
+    <linearGradient id="flowG1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#00d4ff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="flowG2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#22c55e" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="flowG3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#a855f7" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="flowG4" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#f59e0b" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </linearGradient>
+
+    <path id="pathA" d="M 90 150 Q 250 90 400 150 T 710 150" fill="none"/>
+    <path id="pathB" d="M 90 300 Q 250 360 400 300 T 710 300" fill="none"/>
+    <path id="pathC" d="M 130 380 Q 400 240 670 380" fill="none"/>
+    <path id="pathD" d="M 130 70 Q 400 210 670 70" fill="none"/>
+  </defs>
+
+  <!-- FONDO -->
+  <rect width="800" height="450" fill="url(#bgG)"/>
+  <rect width="800" height="450" fill="url(#gridP)"/>
+
+  <!-- ANILLOS ORBITALES CONCÉNTRICOS -->
+  <g transform="translate(400 225)" opacity="0.55">
+    <circle r="185" fill="none" stroke="#00d4ff" stroke-width="1" stroke-dasharray="6 14" opacity="0.5">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="28s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-dasharray" values="6 14;18 6;6 14" dur="9s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="145" fill="none" stroke="#a855f7" stroke-width="1" stroke-dasharray="3 10" opacity="0.55">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="22s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="105" fill="none" stroke="#22c55e" stroke-width="0.8" stroke-dasharray="2 8" opacity="0.45">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="16s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- HALO CENTRAL PULSANTE -->
+  <circle cx="400" cy="225" r="80" fill="url(#haloCyan)" opacity="0.35">
+    <animate attributeName="r" values="70;110;70" dur="5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;0.15;0.5" dur="5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- TÍTULO PRINCIPAL -->
+  <text x="400" y="52" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="30" font-weight="800" letter-spacing="3" fill="#00d4ff" filter="url(#glowStrong)">
+    TOKEN OPTIMIZATION
+    <animate attributeName="fill" values="#00d4ff;#a855f7;#22c55e;#f59e0b;#00d4ff" dur="12s" repeatCount="indefinite"/>
+  </text>
+
+  <!-- SUBTÍTULO -->
+  <text x="400" y="78" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="13" fill="#8fa3bf" letter-spacing="2">
+    CLAUDE CODE · CACHE KEY · TOOL DEFERRAL · /clear
+    <animate attributeName="opacity" values="0.9;0.4;0.9" dur="4.5s" repeatCount="indefinite"/>
+  </text>
+
+  <!-- LABELS DE ESTADO -->
+  <g font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="700" letter-spacing="1.4">
+    <text x="72" y="128" fill="#22c55e" filter="url(#glow)">CACHE HIT
+      <animate attributeName="opacity" values="1;0.15;1" dur="2.5s" repeatCount="indefinite"/>
+    </text>
+    <text x="72" y="325" fill="#ef4444" filter="url(#glow)">CACHE MISS
+      <animate attributeName="opacity" values="0.15;1;0.15" dur="3.2s" repeatCount="indefinite"/>
+    </text>
+    <text x="640" y="128" fill="#f59e0b" filter="url(#glow)">MODEL SWITCH
+      <animate attributeName="opacity" values="1;0.25;1" dur="2.8s" repeatCount="indefinite"/>
+    </text>
+    <text x="640" y="325" fill="#00d4ff" filter="url(#glow)">60 MIN TTL
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="3.5s" repeatCount="indefinite"/>
+    </text>
+  </g>
+
+  <!-- PATHS DE FLUJO -->
+  <use href="#pathA" stroke="url(#flowG1)" stroke-width="2.4" fill="none" filter="url(#glow)">
+    <animate attributeName="stroke-dasharray" values="0 900;900 0;0 900" dur="6s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-dashoffset" values="900;0;900" dur="6s" repeatCount="indefinite"/>
+  </use>
+  <use href="#pathB" stroke="url(#flowG2)" stroke-width="2.4" fill="none" filter="url(#glow)">
+    <animate attributeName="stroke-dasharray" values="0 900;900 0;0 900" dur="7s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-dashoffset" values="900;0;900" dur="7s" repeatCount="indefinite"/>
+  </use>
+  <use href="#pathC" stroke="url(#flowG3)" stroke-width="2" fill="none" filter="url(#glow)" opacity="0.85">
+    <animate attributeName="stroke-dasharray" values="0 700;700 0;0 700" dur="8s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-dashoffset" values="700;0;700" dur="8s" repeatCount="indefinite"/>
+  </use>
+  <use href="#pathD" stroke="url(#flowG4)" stroke-width="2" fill="none" filter="url(#glow)" opacity="0.85">
+    <animate attributeName="stroke-dasharray" values="0 700;700 0;0 700" dur="9s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-dashoffset" values="700;0;700" dur="9s" repeatCount="indefinite"/>
+  </use>
+
+  <!-- PARTÍCULAS VIAJERAS: camino A (cyan) -->
+  <circle r="4" fill="#00d4ff" filter="url(#glowStrong)">
+    <animateMotion dur="4s" repeatCount="indefinite"><mpath href="#pathA"/></animateMotion>
+    <animate attributeName="r" values="2.5;5;2.5" dur="1.4s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3.5" fill="#00d4ff" filter="url(#glowStrong)" opacity="0.8">
+    <animateMotion dur="4s" repeatCount="indefinite" begin="1.5s"><mpath href="#pathA"/></animateMotion>
+  </circle>
+  <circle r="3" fill="#00d4ff" filter="url(#glowStrong)" opacity="0.65">
+    <animateMotion dur="4s" repeatCount="indefinite" begin="2.8s"><mpath href="#pathA"/></animateMotion>
+  </circle>
+
+  <!-- PARTÍCULAS VIAJERAS: camino B (green) -->
+  <circle r="4" fill="#22c55e" filter="url(#glowStrong)">
+    <animateMotion dur="5s" repeatCount="indefinite" begin="0.8s"><mpath href="#pathB"/></animateMotion>
+    <animate attributeName="r" values="5;2.5;5" dur="1.7s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3" fill="#22c55e" filter="url(#glowStrong)" opacity="0.7">
+    <animateMotion dur="5s" repeatCount="indefinite" begin="2.4s"><mpath href="#pathB"/></animateMotion>
+  </circle>
+
+  <!-- PARTÍCULAS VIAJERAS: camino C (purple) -->
+  <circle r="3.5" fill="#a855f7" filter="url(#glowStrong)">
+    <animateMotion dur="6s" repeatCount="indefinite" begin="1s"><mpath href="#pathC"/></animateMotion>
+  </circle>
+  <circle r="3" fill="#a855f7" filter="url(#glowStrong)" opacity="0.75">
+    <animateMotion dur="6s" repeatCount="indefinite" begin="3.6s"><mpath href="#pathC"/></animateMotion>
+  </circle>
+
+  <!-- PARTÍCULAS VIAJERAS: camino D (amber) -->
+  <circle r="3.5" fill="#f59e0b" filter="url(#glowStrong)">
+    <animateMotion dur="7s" repeatCount="indefinite" begin="0.5s"><mpath href="#pathD"/></animateMotion>
+  </circle>
+  <circle r="3" fill="#f59e0b" filter="url(#glowStrong)" opacity="0.7">
+    <animateMotion dur="7s" repeatCount="indefinite" begin="4.2s"><mpath href="#pathD"/></animateMotion>
+  </circle>
+
+  <!-- GHOST TOKENS (piezas fantasma) viajando A y B -->
+  <g opacity="0.5">
+    <rect x="-9" y="-9" width="18" height="18" rx="4" fill="none" stroke="#00d4ff" stroke-width="1.5">
+      <animateMotion dur="9s" repeatCount="indefinite" begin="0s"><mpath href="#pathA"/></animateMotion>
+      <animate attributeName="opacity" values="0.05;0.85;0.05" dur="9s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  <g opacity="0.5">
+    <rect x="-9" y="-9" width="18" height="18" rx="4" fill="none" stroke="#22c55e" stroke-width="1.5">
+      <animateMotion dur="9s" repeatCount="indefinite" begin="3s"><mpath href="#pathB"/></animateMotion>
+      <animate attributeName="opacity" values="0.05;0.85;0.05" dur="9s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  <g opacity="0.5">
+    <rect x="-9" y="-9" width="18" height="18" rx="4" fill="none" stroke="#a855f7" stroke-width="1.5">
+      <animateMotion dur="11s" repeatCount="indefinite" begin="1.5s"><mpath href="#pathC"/></animateMotion>
+      <animate attributeName="opacity" values="0.05;0.75;0.05" dur="11s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- NÚCLEO CENTRAL: VAULT / CACHÉ -->
+  <g transform="translate(400 225)">
+    <circle r="46" fill="#0f172a" stroke="#00d4ff" stroke-width="1.5" filter="url(#glow)">
+      <animate attributeName="stroke-width" values="1.2;2.6;1.2" dur="2.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="34" fill="none" stroke="#a855f7" stroke-width="0.9" stroke-dasharray="4 6" opacity="0.85">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="10s" repeatCount="indefinite"/>
+    </circle>
+    <text y="-2" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="11" font-weight="800" letter-spacing="1.4" fill="#00d4ff" filter="url(#glow)">CACHE</text>
+    <text y="13" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="8" letter-spacing="1.6" fill="#8fa3bf">KEY · MODEL · MCP</text>
+  </g>
+
+  <!-- NODOS LATERALES: MODELO y CONTEXTO -->
+  <g transform="translate(120 150)">
+    <circle r="26" fill="#0f172a" stroke="#f59e0b" stroke-width="1.4" filter="url(#glow)"/>
+    <text y="4" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="800" fill="#f59e0b">MODEL</text>
+    <circle r="34" fill="none" stroke="#f59e0b" stroke-width="0.8" opacity="0.5">
+      <animate attributeName="r" values="30;42;30" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0;0.6" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  <g transform="translate(680 150)">
+    <circle r="26" fill="#0f172a" stroke="#22c55e" stroke-width="1.4" filter="url(#glow)"/>
+    <text y="4" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="800" fill="#22c55e">TOKENS</text>
+    <circle r="34" fill="none" stroke="#22c55e" stroke-width="0.8" opacity="0.5">
+      <animate attributeName="r" values="30;42;30" dur="3.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0;0.6" dur="3.6s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <g transform="translate(120 300)">
+    <circle r="26" fill="#0f172a" stroke="#a855f7" stroke-width="1.4" filter="url(#glow)"/>
+    <text y="4" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="800" fill="#a855f7">CTX</text>
+    <circle r="34" fill="none" stroke="#a855f7" stroke-width="0.8" opacity="0.5">
+      <animate attributeName="r" values="30;42;30" dur="4.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0;0.6" dur="4.2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  <g transform="translate(680 300)">
+    <circle r="26" fill="#0f172a" stroke="#00d4ff" stroke-width="1.4" filter="url(#glow)"/>
+    <text y="4" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="800" fill="#00d4ff">/clear</text>
+    <circle r="34" fill="none" stroke="#00d4ff" stroke-width="0.8" opacity="0.5">
+      <animate attributeName="r" values="30;42;30" dur="3.3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0;0.6" dur="3.3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- EXPLOSIONES RADIALES DE PARTÍCULAS en el núcleo -->
+  <g transform="translate(400 225)" opacity="0.85">
+    <g>
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="6s" repeatCount="indefinite"/>
+      <line x1="0" y1="0" x2="0" y2="-58" stroke="#00d4ff" stroke-width="1.4" filter="url(#glow)">
+        <animate attributeName="y2" values="40;72;40" dur="2.4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.9;0;0.9" dur="2.4s" repeatCount="indefinite"/>
+      </line>
+      <line x1="0" y1="0" x2="0" y2="58" stroke="#00d4ff" stroke-width="1.4" filter="url(#glow)">
+        <animate attributeName="y2" values="40;72;40" dur="2.4s" repeatCount="indefinite" begin="0.6s"/>
+        <animate attributeName="opacity" values="0.9;0;0.9" dur="2.4s" repeatCount="indefinite" begin="0.6s"/>
+      </line>
+      <line x1="0" y1="0" x2="58" y2="0" stroke="#00d4ff" stroke-width="1.4" filter="url(#glow)">
+        <animate attributeName="x2" values="40;72;40" dur="2.4s" repeatCount="indefinite" begin="1.2s"/>
+        <animate attributeName="opacity" values="0.9;0;0.9" dur="2.4s" repeatCount="indefinite" begin="1.2s"/>
+      </line>
+      <line x1="0" y1="0" x2="-58" y2="0" stroke="#00d4ff" stroke-width="1.4" filter="url(#glow)">
+        <animate attributeName="x2" values="-40;-72;-40" dur="2.4s" repeatCount="indefinite" begin="1.8s"/>
+        <animate attributeName="opacity" values="0.9;0;0.9" dur="2.4s" repeatCount="indefinite" begin="1.8s"/>
+      </line>
+    </g>
+  </g>
+
+  <!-- ANILLO ORBITANDO AL NÚCLEO -->
+  <g transform="translate(400 225)">
+    <ellipse rx="72" ry="34" fill="none" stroke="#00d4ff" stroke-width="0.9" stroke-dasharray="3 7" opacity="0.75">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="8s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse rx="94" ry="46" fill="none" stroke="#a855f7" stroke-width="0.7" stroke-dasharray="2 9" opacity="0.5">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="13s" repeatCount="indefinite"/>
+    </ellipse>
+  </g>
+
+  <!-- FLASH + TEXTO GRANDE CULMINANTE -->
+  <g transform="translate(400 400)" opacity="0">
+    <text text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="26" font-weight="900" letter-spacing="6" fill="#00d4ff" filter="url(#glowStrong)">CACHE HIT!</text>
+    <animate attributeName="opacity" values="0;0;1;1;0;0" dur="9s" repeatCount="indefinite" keyTimes="0;0.55;0.62;0.78;0.85;1"/>
+  </g>
+
+  <!-- LIVE INDICATOR -->
+  <g transform="translate(742 30)">
+    <circle r="5" fill="#ef4444" filter="url(#glowStrong)">
+      <animate attributeName="opacity" values="1;0.2;1" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <text x="12" y="4" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" font-weight="800" letter-spacing="1.6" fill="#ef4444">LIVE</text>
+  </g>
+
+  <!-- FIRMA -->
+  <text x="400" y="440" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="10" letter-spacing="3" fill="#5f7392">
+    RUBÉN SBARSKY · CLAUDE CODE TOKEN OPTIMIZATION
+    <animate attributeName="opacity" values="0.9;0.25;0.9" dur="5.5s" repeatCount="indefinite"/>
+  </text>
+</svg>
+</template>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Inject SVG into HOME and CRÉDITOS (same SVG, two instances, independently animated) ----------
+  const tpl = document.getElementById('svg-template');
+  const homeHolder = document.getElementById('svg-home');
+  const creditsHolder = document.getElementById('svg-credits');
+
+  function injectSVG(holder){
+    if(!holder || !tpl) return;
+    holder.innerHTML = '';
+    const frag = tpl.content.cloneNode(true);
+    holder.appendChild(frag);
+  }
+
+  injectSVG(homeHolder);
+  injectSVG(creditsHolder);
+
+  // Restart SMIL animations on section change (re-clone to force restart)
+  function restartSVG(holder){
+    if(!holder) return;
+    injectSVG(holder);
+  }
+
+  // ---------- SPA Navigation ----------
+  const navButtons = document.querySelectorAll('.nav-btn');
+  const sections = document.querySelectorAll('.section');
+
+  function showSection(id){
+    let found = false;
+    sections.forEach(s=>{
+      if(s.id === id){ s.classList.add('active'); found = true; }
+      else s.classList.remove('active');
+    });
+    if(!found) return;
+
+    navButtons.forEach(b=>{
+      b.classList.toggle('active', b.dataset.target === id);
+    });
+
+    // Restart SVG in credits when entering it
+    if(id === 'creditos'){
+      setTimeout(()=>restartSVG(creditsHolder), 20);
+    }
+    if(id === 'home'){
+      setTimeout(()=>restartSVG(homeHolder), 20);
+    }
+
+    window.scrollTo({top:0, behavior:'smooth'});
+    updateProgress();
+  }
+
+  navButtons.forEach(btn=>{
+    btn.addEventListener('click', ()=>showSection(btn.dataset.target));
+  });
+
+  // ---------- Accordions ----------
+  document.querySelectorAll('.acc-head').forEach(head=>{
+    head.addEventListener('click', ()=>{
+      const item = head.parentElement;
+      item.classList.toggle('open');
+    });
+  });
+
+  // ---------- Tabs ----------
+  document.querySelectorAll('[data-tabs]').forEach(group=>{
+    const buttons = group.querySelectorAll('.tab-btn');
+    buttons.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        buttons.forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const container = group.parentElement;
+        container.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+        const target = container.querySelector('#'+btn.dataset.tab);
+        if(target) target.classList.add('active');
+      });
+    });
+  });
+
+  // ---------- Progress bar ----------
+  const progressBar = document.getElementById('progress-bar');
+  function updateProgress(){
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    let pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    pct = Math.max(0, Math.min(100, pct));
+    progressBar.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', updateProgress, {passive:true});
+  window.addEventListener('resize', updateProgress);
+
+  // ---------- Back to top ----------
+  const toTop = document.getElementById('toTop');
+  toTop.addEventListener('click', ()=>window.scrollTo({top:0, behavior:'smooth'}));
+  window.addEventListener('scroll', ()=>{
+    if(window.scrollY > 300) toTop.classList.add('show');
+    else toTop.classList.remove('show');
+  }, {passive:true});
+
+  // Init
+  updateProgress();
+})();
+</script>
+
+</body>
+</html>
+```
